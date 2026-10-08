@@ -1,0 +1,47 @@
+{
+  "notebooks": [
+    {
+      "id": "nb-tech",
+      "name": "技术笔记"
+    },
+    {
+      "id": "nb-life",
+      "name": "生活随笔"
+    }
+  ],
+  "notes": [
+    {
+      "id": "n-closure",
+      "notebookId": "nb-tech",
+      "title": "JavaScript 闭包笔记",
+      "tags": [
+        "JavaScript",
+        "基础"
+      ],
+      "date": "2024-05-12",
+      "content": "# JavaScript 闭包\n\n闭包 = **函数** + 它声明时所在的**词法作用域**。只要内部函数还在被引用，外层作用域就不会被回收。\n\n## 一个最小例子\n\n~~~js\nfunction counter() {\n  let count = 0;\n  return function () {\n    count += 1;\n    return count;\n  };\n}\n\nconst next = counter();\nnext(); // 1\nnext(); // 2\n~~~\n\n`count` 并没有随 `counter()` 执行结束而消失，因为它被返回的匿名函数引用着。\n\n## 常见用途\n\n1. 私有变量（模块模式）\n2. 函数工厂 / 柯里化\n3. 防抖、节流里保存定时器状态\n\n> 注意：闭包会让变量常驻内存。如果在循环里创建大量闭包，可能造成内存占用偏高。\n\n## 那个经典的循环问题\n\n~~~js\nfor (var i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i)); // 3 3 3\n}\n~~~\n\n把 `var` 换成 `let`，每次迭代都会创建一个新的绑定，输出就变成 `0 1 2`。"
+    },
+    {
+      "id": "n-flex",
+      "notebookId": "nb-tech",
+      "title": "CSS Flex 布局速查",
+      "tags": [
+        "CSS",
+        "布局"
+      ],
+      "date": "2024-06-03",
+      "content": "# CSS Flex 布局速查\n\n给容器加上 `display: flex` 之后，主轴方向由 `flex-direction` 决定。\n\n## 容器属性\n\n| 属性 | 作用 | 常用值 |\n| --- | --- | --- |\n| `justify-content` | 主轴对齐 | `flex-start` / `center` / `space-between` |\n| `align-items` | 交叉轴对齐 | `stretch` / `center` / `flex-start` |\n| `flex-wrap` | 是否换行 | `nowrap` / `wrap` |\n| `gap` | 子项间距 | `8px` / `1rem` |\n\n## 子项属性\n\n- `flex: 1` —— 等价于 `flex: 1 1 0%`，常用于「撑满剩余空间」\n- `flex: none` —— 不放大也不收缩，常用于固定宽度的侧栏\n- `align-self` —— 单独覆盖父级的 `align-items`\n\n## 记忆口诀\n\n> 主轴用 `justify-*`，交叉轴用 `align-*`；当 `flex-direction: column` 时，两者正好互换。\n\n延伸阅读：[MDN - Flexbox](https://developer.mozilla.org/zh-CN/docs/Web/CSS/CSS_flexible_box_layout)"
+    },
+    {
+      "id": "n-git",
+      "notebookId": "nb-life",
+      "title": "Git 日常命令清单",
+      "tags": [
+        "Git",
+        "工具"
+      ],
+      "date": "2024-06-20",
+      "content": "# Git 日常命令清单\n\n## 首次推送一个项目\n\n~~~bash\ngit init\ngit add .\ngit commit -m \"first commit\"\ngit branch -M main\ngit remote add origin https://github.com/用户名/仓库名.git\ngit push -u origin main\n~~~\n\n## 日常循环\n\n1. `git pull` 拉取最新代码\n2. 修改文件\n3. `git status` 看看改了什么\n4. `git add <文件>` 暂存\n5. `git commit -m \"说明\"` 提交\n6. `git push` 推送\n\n## 撤销操作\n\n~~~bash\ngit restore <文件>          # 丢弃工作区修改\ngit restore --staged <文件> # 取消暂存\ngit commit --amend          # 修改最近一次提交\n~~~\n\n> 已经 push 过的提交不要随便 `--amend`，除非你确定只有自己在这个分支上。\n\n## 小技巧\n\n- `git log --oneline --graph --all` 看分支图\n- `git stash` 临时保存手头改动\n- `.gitignore` 里写上 `node_modules/`、`dist/`"
+    }
+  ]
+}
