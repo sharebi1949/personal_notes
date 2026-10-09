@@ -2,19 +2,29 @@
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#2f6feb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="我的笔记">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%232f6feb'/%3E%3Crect x='52' y='40' width='88' height='112' rx='8' fill='%23fff'/%3E%3Crect x='68' y='62' width='56' height='8' rx='4' fill='%232f6feb'/%3E%3Crect x='68' y='82' width='56' height='8' rx='4' fill='%232f6feb'/%3E%3Crect x='68' y='102' width='40' height='8' rx='4' fill='%232f6feb'/%3E%3C/svg%3E">
 <title>我的笔记</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" id="hljs-light">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" id="hljs-dark">
 <style>
   :root{
     --bg:#f6f7f9;--fg:#1f2328;--muted:#656d76;--card:#ffffff;
     --border:#e2e5e9;--accent:#2f6feb;--accent-soft:#e8f0fe;
     --code-bg:#f2f4f7;--mark-bg:#ffe08a;--mark-fg:#1f2328;--danger:#d1242f;
+    --pin:#e3a008;
   }
   html[data-theme="dark"]{
     --bg:#0d1117;--fg:#e6edf3;--muted:#9198a1;--card:#161b22;
     --border:#30363d;--accent:#4c8dff;--accent-soft:#1b2a45;
     --code-bg:#1b2028;--mark-bg:#8a6a00;--mark-fg:#fff8dc;--danger:#ff6b6b;
+    --pin:#d4a72c;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -25,8 +35,6 @@
     -webkit-font-smoothing:antialiased;transition:background .2s ease,color .2s ease;
   }
   button,input,select,textarea{font-family:inherit;}
-
-  /* 顶部栏 */
   .topbar{flex:none;display:flex;align-items:center;gap:10px;padding:12px 18px;background:var(--card);border-bottom:1px solid var(--border);}
   .brand{font-size:16px;font-weight:700;white-space:nowrap;}
   .search-wrap{flex:1;max-width:520px;margin:0 auto;position:relative;}
@@ -35,13 +43,15 @@
   #search:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   #clearSearch{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:none;padding:4px 7px;font-size:13px;color:var(--muted);background:transparent;border:0;border-radius:6px;cursor:pointer;}
   #clearSearch:hover{color:var(--fg);background:var(--accent-soft);}
+  .sort-sel{padding:6px 8px;font-size:12px;color:var(--fg);background:var(--bg);border:1px solid var(--border);border-radius:7px;outline:none;cursor:pointer;}
+  .sort-sel:hover{border-color:var(--accent);}
   .sync-status{flex:none;font-size:12px;color:var(--muted);white-space:nowrap;cursor:pointer;user-select:none;}
   .sync-status.saving{color:var(--accent);}
   .sync-status.error{color:var(--danger);}
-  .icon-btn{flex:none;width:36px;height:36px;font-size:16px;line-height:1;color:var(--fg);background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .15s,background .15s;}
+  .icon-btn{flex:none;width:36px;height:36px;font-size:16px;line-height:1;color:var(--fg);background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;justify-content:center;}
   .icon-btn:hover{border-color:var(--accent);background:var(--accent-soft);}
+  .icon-btn.active{color:#fff;background:var(--accent);border-color:var(--accent);}
 
-  /* 主布局 */
   main{flex:1;display:flex;min-height:0;}
   aside{flex:none;width:300px;min-height:0;display:flex;flex-direction:column;background:var(--card);border-right:1px solid var(--border);}
   .section-head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 5px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
@@ -69,21 +79,25 @@
   .chip.plain{cursor:default;pointer-events:none;}
 
   .list{flex:1;min-height:0;overflow-y:auto;padding:8px;}
-  .item{padding:10px 12px;margin-bottom:4px;border:1px solid transparent;border-radius:8px;cursor:pointer;transition:background .12s,border-color .12s;}
+  .item{padding:10px 12px;margin-bottom:4px;border:1px solid transparent;border-radius:8px;cursor:pointer;transition:background .12s,border-color .12s;animation:fadeIn .18s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
   .item:hover{background:var(--accent-soft);}
   .item.active{background:var(--accent-soft);border-color:var(--accent);}
-  .item-title{font-size:14px;font-weight:600;line-height:1.45;word-break:break-word;}
+  .item-title{font-size:14px;font-weight:600;line-height:1.45;word-break:break-word;display:flex;align-items:flex-start;gap:5px;}
+  .item-title .pin{flex:none;color:var(--pin);}
+  .item-title span{flex:1;min-width:0;}
   .item-snippet{margin-top:4px;font-size:12px;line-height:1.55;color:var(--muted);word-break:break-word;}
   .item-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;font-size:12px;color:var(--muted);word-break:break-word;}
   mark{padding:0 2px;color:var(--mark-fg);background:var(--mark-bg);border-radius:3px;}
 
-  #article{flex:1;min-width:0;overflow-y:auto;}
-  .doc{max-width:780px;margin:0 auto;padding:28px 40px 90px;}
+  #article{flex:1;min-width:0;overflow-y:auto;scroll-behavior:smooth;}
+  .doc{max-width:780px;margin:0 auto;padding:28px 40px 90px;animation:fadeIn .22s ease;}
   .doc-head{margin-bottom:20px;}
   .doc-title{margin:0 0 10px;font-size:25px;font-weight:700;line-height:1.35;word-break:break-word;}
+  .doc-title .pin{color:var(--pin);}
   .doc-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
-  .doc-actions{margin-left:auto;display:flex;gap:6px;}
-  .btn{padding:5px 11px;font-size:12px;color:var(--fg);background:var(--bg);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;}
+  .doc-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;}
+  .btn{padding:5px 11px;font-size:12px;color:var(--fg);background:var(--bg);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap;}
   .btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
   .btn.primary{color:#fff;background:var(--accent);border-color:var(--accent);}
   .btn.primary:hover{filter:brightness(1.08);color:#fff;}
@@ -91,7 +105,6 @@
   .btn.danger:hover{background:var(--danger);border-color:var(--danger);color:#fff;}
   .empty{padding:44px 20px;text-align:center;font-size:14px;color:var(--muted);}
 
-  /* Markdown */
   .md{font-size:15px;}
   .md h1{font-size:24px;line-height:1.35;margin:28px 0 12px;}
   .md h2{font-size:19px;line-height:1.4;margin:30px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
@@ -106,18 +119,18 @@
   .md code{padding:2px 5px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code-bg);border-radius:4px;word-break:break-word;}
   .md pre{margin:14px 0;padding:13px 15px;background:var(--code-bg);border:1px solid var(--border);border-radius:8px;overflow-x:auto;}
   .md pre code{padding:0;font-size:13px;line-height:1.65;background:none;border-radius:0;white-space:pre;}
+  .md pre code.hljs{background:transparent;padding:0;}
   .md a{color:var(--accent);text-decoration:none;}
   .md a:hover{text-decoration:underline;}
   .md hr{margin:26px 0;border:0;border-top:1px solid var(--border);}
-  .md img{max-width:100%;height:auto;display:block;margin:14px auto;border-radius:8px;}
+  .md img{max-width:100%;height:auto;display:block;margin:14px auto;border-radius:8px;background:var(--code-bg);min-height:40px;}
   .md table{display:block;width:100%;margin:14px 0;font-size:14px;border-collapse:collapse;overflow-x:auto;}
   .md th,.md td{padding:7px 11px;text-align:left;border:1px solid var(--border);}
   .md th{font-weight:600;background:var(--code-bg);white-space:nowrap;}
 
-  /* 弹窗 */
   .modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.45);}
   .modal.open{display:flex;}
-  .modal-box{width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.25);}
+  .modal-box{width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.25);}
   .modal-head{flex:none;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;}
   .modal-body{flex:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
   .modal-foot{flex:none;display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--border);}
@@ -127,27 +140,47 @@
   .field-row{display:flex;gap:10px;}
   .field-row > *{flex:1;min-width:0;}
   .field-label{font-size:12px;color:var(--muted);margin-bottom:4px;display:block;}
-  #editorContent{flex:1;min-height:260px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.7;white-space:pre-wrap;}
-  .editor-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);}
   .hint{font-size:12.5px;line-height:1.7;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
   .hint code{font-size:12px;background:var(--code-bg);padding:1px 4px;border-radius:3px;}
   details summary{cursor:pointer;font-size:12.5px;color:var(--accent);}
   details[open] summary{margin-bottom:6px;}
 
-  /* 全屏遮罩 */
+  /* 编辑器工具栏 */
+  .editor-toolbar{
+    display:flex;flex-wrap:wrap;gap:4px;padding:8px;
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  }
+  .tb-btn{
+    min-width:30px;height:28px;padding:0 8px;font-size:13px;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--fg);background:var(--card);
+    border:1px solid var(--border);border-radius:6px;cursor:pointer;
+    transition:all .12s;
+  }
+  .tb-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+  .tb-btn:active{transform:scale(.96);}
+  .tb-sep{width:1px;background:var(--border);margin:4px 2px;}
+  #editorContent{flex:1;min-height:240px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.7;white-space:pre-wrap;tab-size:2;}
+  .editor-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);}
+  .upload-hint{font-size:12px;color:var(--accent);}
+
   .overlay{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px;}
   .overlay.open{display:flex;}
   .overlay .box{max-width:440px;text-align:center;}
-  .overlay .box p{font-size:14px;color:var(--muted);line-height:1.7;word-break:break-word;}
+  .overlay .box p{font-size:14px;color:var(--muted);line-height:1.7;word-break:break-word;white-space:pre-wrap;}
   .spinner{width:30px;height:30px;margin:0 auto 14px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
   .overlay .btn{margin-top:14px;padding:8px 18px;font-size:13px;}
 
-  /* 响应式 */
+  /* 回收站操作 */
+  .trash-actions{display:flex;gap:6px;margin-top:6px;}
+  .trash-actions .btn{padding:3px 8px;font-size:11px;}
+
   @media (max-width:820px){
-    .topbar{padding:10px 12px;gap:8px;}
-    .brand{font-size:14px;}
+    .topbar{padding:8px 12px;gap:6px;}
+    .brand{display:none;}
     .search-wrap{max-width:none;}
+    .sort-sel{display:none;}
     .sync-status{display:none;}
     main{flex-direction:column;}
     aside{width:auto;max-height:46vh;border-right:0;border-bottom:1px solid var(--border);}
@@ -155,7 +188,7 @@
     .tagbar{max-height:72px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding-bottom:8px;}
     .tagbar .chip{flex:none;}
     .list{padding:6px;}
-    .doc{padding:20px 16px 70px;}
+    .doc{padding:18px 16px 70px;}
     .doc-title{font-size:20px;}
     .md{font-size:14.5px;}
     .md h1{font-size:20px;}
@@ -164,6 +197,8 @@
     .modal{padding:0;}
     .modal-box{max-width:none;max-height:100dvh;height:100dvh;border-radius:0;border:0;}
     #editorContent{min-height:180px;}
+    .editor-toolbar{padding:6px;}
+    .tb-btn{min-width:28px;height:26px;font-size:12px;padding:0 6px;}
   }
 </style>
 </head>
@@ -172,24 +207,30 @@
 <header class="topbar">
   <div class="brand">📒 我的笔记</div>
   <div class="search-wrap">
-    <input id="search" type="text" placeholder="搜索标题、正文、标签或笔记本…" autocomplete="off" spellcheck="false">
+    <input id="search" type="text" placeholder="搜索标题、正文、标签…" autocomplete="off" spellcheck="false">
     <button id="clearSearch" type="button" title="清空搜索">✕</button>
   </div>
+  <select id="sortSel" class="sort-sel" title="排序方式">
+    <option value="updated">按修改时间</option>
+    <option value="created">按创建时间</option>
+    <option value="title">按标题</option>
+  </select>
   <span class="sync-status" id="syncStatus" title="点击重新从云端加载"></span>
+  <button id="trashBtn" class="icon-btn" type="button" title="回收站">🗑</button>
   <button id="settingsBtn" class="icon-btn" type="button" title="设置">⚙️</button>
   <button id="themeBtn" class="icon-btn" type="button" title="切换深浅色">🌙</button>
 </header>
 
 <main>
   <aside>
-    <div class="nb-section">
+    <div class="nb-section" id="nbSection">
       <div class="section-head">
-        <span>笔记本</span>
+        <span id="nbHeadText">笔记本</span>
         <button id="addNotebook" class="mini-btn" type="button" title="新建笔记本">＋</button>
       </div>
       <div class="nb-wrap" id="notebookList"></div>
     </div>
-    <div class="tag-section">
+    <div class="tag-section" id="tagSection">
       <div class="section-head"><span>标签</span></div>
       <div class="tagbar" id="tagbar"></div>
     </div>
@@ -198,7 +239,7 @@
   <article id="article"><div class="doc" id="doc"></div></article>
 </main>
 
-<!-- 配置弹窗 -->
+<!-- 设置弹窗 -->
 <div class="modal" id="setupModal">
   <div class="modal-box">
     <div class="modal-head">
@@ -206,52 +247,29 @@
       <button class="mini-btn" id="setupClose" type="button" title="关闭" style="display:none">✕</button>
     </div>
     <div class="modal-body">
-      <div class="hint">
-        笔记数据会保存到你 GitHub 仓库里的一个 JSON 文件。<br>
-        手机和电脑填同样的配置，就能看到同一份笔记。
-      </div>
-
+      <div class="hint">笔记数据会保存到你 GitHub 仓库里的一个 JSON 文件。<br>手机和电脑填同样的配置，就能看到同一份笔记。</div>
       <div class="field-row">
-        <div>
-          <label class="field-label">GitHub 用户名</label>
-          <input id="cfgOwner" class="field" placeholder="例如 zhangsan" autocomplete="off" spellcheck="false">
-        </div>
-        <div>
-          <label class="field-label">仓库名</label>
-          <input id="cfgRepo" class="field" placeholder="例如 my-notes" autocomplete="off" spellcheck="false">
-        </div>
+        <div><label class="field-label">GitHub 用户名</label><input id="cfgOwner" class="field" placeholder="例如 zhangsan" autocomplete="off" spellcheck="false"></div>
+        <div><label class="field-label">仓库名</label><input id="cfgRepo" class="field" placeholder="例如 my-notes" autocomplete="off" spellcheck="false"></div>
       </div>
-
       <div class="field-row">
-        <div>
-          <label class="field-label">分支</label>
-          <input id="cfgBranch" class="field" placeholder="main" autocomplete="off" spellcheck="false">
-        </div>
-        <div>
-          <label class="field-label">数据文件路径</label>
-          <input id="cfgPath" class="field" placeholder="data.json" autocomplete="off" spellcheck="false">
-        </div>
+        <div><label class="field-label">分支</label><input id="cfgBranch" class="field" placeholder="main" autocomplete="off" spellcheck="false"></div>
+        <div><label class="field-label">数据文件路径</label><input id="cfgPath" class="field" placeholder="data.json" autocomplete="off" spellcheck="false"></div>
       </div>
-
-      <div>
-        <label class="field-label">Personal Access Token</label>
-        <input id="cfgToken" class="field" type="password" placeholder="github_pat_..." autocomplete="off" spellcheck="false">
-      </div>
-
+      <div><label class="field-label">Personal Access Token</label><input id="cfgToken" class="field" type="password" placeholder="github_pat_... 或 ghp_..." autocomplete="off" spellcheck="false"></div>
       <details>
-        <summary>怎么获取 Token？（点开看步骤）</summary>
+        <summary>怎么获取 Token？</summary>
         <div class="hint" style="margin-top:6px">
-          1. GitHub 右上角头像 → <b>Settings</b><br>
-          2. 左侧最底 → <b>Developer settings</b><br>
-          3. <b>Personal access tokens</b> → <b>Fine-grained tokens</b> → <b>Generate new token</b><br>
-          4. 起个名字，过期时间自选<br>
-          5. <b>Repository access</b> → Only select repositories → 勾选你的笔记仓库<br>
-          6. <b>Permissions</b> → Repository permissions → 找到 <b>Contents</b> → 改成 <b>Read and write</b><br>
-          7. 生成后复制那串 <code>github_pat_...</code>（只显示一次）
-          <br><br>
-          ⚠️ 这串东西等于密码，不要发给别人。只存在你本机浏览器里。
+          GitHub 头像 → <b>Settings</b> → <b>Developer settings</b> → <b>Personal access tokens</b> → 选 <b>Fine-grained</b> 或 <b>Tokens (classic)</b><br><br>
+          <b>细粒度</b>：Repository access 勾选你的仓库，Permissions → Contents → <b>Read and write</b><br>
+          <b>经典</b>：Select scopes 只勾 <b>repo</b>
         </div>
       </details>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" id="exportBtn" type="button">⬇ 导出全部数据</button>
+        <button class="btn" id="importBtn" type="button">⬆ 导入数据</button>
+      </div>
+      <div class="hint">导出：把全部笔记下载为一个 JSON 文件（本地备份）。<br>导入：选一个 JSON 文件覆盖当前全部数据，会同时写入 GitHub。</div>
     </div>
     <div class="modal-foot">
       <button class="btn danger" id="setupClear" type="button" style="display:none">清除配置</button>
@@ -274,10 +292,29 @@
         <select id="editorNotebook" class="field"></select>
         <input id="editorTags" class="field" placeholder="标签，用逗号分隔" autocomplete="off">
       </div>
+      <div class="editor-toolbar" id="editorToolbar">
+        <button class="tb-btn" data-cmd="bold" title="加粗 (Ctrl+B)"><b>B</b></button>
+        <button class="tb-btn" data-cmd="italic" title="斜体 (Ctrl+I)"><i>I</i></button>
+        <button class="tb-btn" data-cmd="strike" title="删除线"><s>S</s></button>
+        <button class="tb-btn" data-cmd="inlineCode" title="行内代码">&lt;/&gt;</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" data-cmd="h1" title="一级标题">H1</button>
+        <button class="tb-btn" data-cmd="h2" title="二级标题">H2</button>
+        <button class="tb-btn" data-cmd="h3" title="三级标题">H3</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" data-cmd="ul" title="无序列表">• 列表</button>
+        <button class="tb-btn" data-cmd="ol" title="有序列表">1. 列表</button>
+        <button class="tb-btn" data-cmd="quote" title="引用">❝</button>
+        <button class="tb-btn" data-cmd="codeblock" title="代码块">代码块</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" data-cmd="link" title="插入链接 (Ctrl+K)">🔗</button>
+        <button class="tb-btn" data-cmd="table" title="插入表格">▦</button>
+      </div>
       <textarea id="editorContent" class="field" placeholder="在这里写 Markdown…&#10;&#10;图片：可点下方按钮上传，也可以直接粘贴 / 拖入图片"></textarea>
       <div class="editor-tools">
-        <button class="btn" id="editorImageBtn" type="button">🖼 插入图片</button>
-        <span>支持粘贴截图、拖入图片；也支持 ![](图片网址)</span>
+        <button class="btn" id="editorImageBtn" type="button">🖼 上传图片</button>
+        <span>图片会上传到仓库 images/ 目录，可粘贴截图或拖入</span>
+        <span class="upload-hint" id="uploadHint"></span>
       </div>
       <input type="file" id="editorFileInput" accept="image/*" hidden>
     </div>
@@ -290,32 +327,24 @@
   </div>
 </div>
 
-<!-- 加载 / 错误遮罩 -->
-<div class="overlay" id="overlay">
-  <div class="box" id="overlayBox"></div>
-</div>
+<div class="overlay" id="overlay"><div class="box" id="overlayBox"></div></div>
+<button class="icon-btn" id="toTop" style="position:fixed;right:20px;bottom:20px;display:none;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:50;" title="回到顶部">↑</button>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
 
 <script>
 /* ============================================================
-   1. 首次使用时写入云端的默认数据
-   —— 只在你还没有 data.json 时用一次
-   —— 想写代码块请用 ~~~ 开头结尾（``` 会截断模板字符串）
+   1. 默认数据
    ============================================================ */
 const DEFAULT_DATA = {
+  version: 2,
   notebooks: [
     { id: 'nb-tech', name: '技术笔记' },
     { id: 'nb-life', name: '生活随笔' }
   ],
   notes: [
-    {
-      id: 'n-closure',
-      notebookId: 'nb-tech',
-      title: 'JavaScript 闭包笔记',
-      tags: ['JavaScript', '基础'],
-      date: '2024-05-12',
-      content: `# JavaScript 闭包
+    { id:'n-closure', notebookId:'nb-tech', title:'JavaScript 闭包笔记', tags:['JavaScript','基础'], date:'2024-05-12', content:`# JavaScript 闭包
 
 闭包 = **函数** + 它声明时所在的**词法作用域**。只要内部函数还在被引用，外层作用域就不会被回收。
 
@@ -337,31 +366,14 @@ next(); // 2
 
 \`count\` 并没有随 \`counter()\` 执行结束而消失，因为它被返回的匿名函数引用着。
 
+> 注意：闭包会让变量常驻内存。
+
 ## 常见用途
 
 1. 私有变量（模块模式）
 2. 函数工厂 / 柯里化
-3. 防抖、节流里保存定时器状态
-
-> 注意：闭包会让变量常驻内存。如果在循环里创建大量闭包，可能造成内存占用偏高。
-
-## 那个经典的循环问题
-
-~~~js
-for (var i = 0; i < 3; i++) {
-  setTimeout(() => console.log(i)); // 3 3 3
-}
-~~~
-
-把 \`var\` 换成 \`let\`，每次迭代都会创建一个新的绑定，输出就变成 \`0 1 2\`。`
-    },
-    {
-      id: 'n-flex',
-      notebookId: 'nb-tech',
-      title: 'CSS Flex 布局速查',
-      tags: ['CSS', '布局'],
-      date: '2024-06-03',
-      content: `# CSS Flex 布局速查
+3. 防抖、节流里保存定时器状态` },
+    { id:'n-flex', notebookId:'nb-tech', title:'CSS Flex 布局速查', tags:['CSS','布局'], date:'2024-06-03', content:`# CSS Flex 布局速查
 
 给容器加上 \`display: flex\` 之后，主轴方向由 \`flex-direction\` 决定。
 
@@ -370,31 +382,15 @@ for (var i = 0; i < 3; i++) {
 | 属性 | 作用 | 常用值 |
 | --- | --- | --- |
 | \`justify-content\` | 主轴对齐 | \`flex-start\` / \`center\` / \`space-between\` |
-| \`align-items\` | 交叉轴对齐 | \`stretch\` / \`center\` / \`flex-start\` |
-| \`flex-wrap\` | 是否换行 | \`nowrap\` / \`wrap\` |
-| \`gap\` | 子项间距 | \`8px\` / \`1rem\` |
-
-## 子项属性
-
-- \`flex: 1\` —— 等价于 \`flex: 1 1 0%\`，常用于「撑满剩余空间」
-- \`flex: none\` —— 不放大也不收缩，常用于固定宽度的侧栏
-- \`align-self\` —— 单独覆盖父级的 \`align-items\`
+| \`align-items\` | 交叉轴对齐 | \`stretch\` / \`center\` |
+| \`gap\` | 子项间距 | \`8px\` |
 
 ## 记忆口诀
 
-> 主轴用 \`justify-*\`，交叉轴用 \`align-*\`；当 \`flex-direction: column\` 时，两者正好互换。
+> 主轴用 \`justify-*\`，交叉轴用 \`align-*\`。` },
+    { id:'n-git', notebookId:'nb-life', title:'Git 日常命令清单', tags:['Git','工具'], date:'2024-06-20', content:`# Git 日常命令清单
 
-延伸阅读：[MDN - Flexbox](https://developer.mozilla.org/zh-CN/docs/Web/CSS/CSS_flexible_box_layout)`
-    },
-    {
-      id: 'n-git',
-      notebookId: 'nb-life',
-      title: 'Git 日常命令清单',
-      tags: ['Git', '工具'],
-      date: '2024-06-20',
-      content: `# Git 日常命令清单
-
-## 首次推送一个项目
+## 首次推送
 
 ~~~bash
 git init
@@ -407,36 +403,21 @@ git push -u origin main
 
 ## 日常循环
 
-1. \`git pull\` 拉取最新代码
+1. \`git pull\`
 2. 修改文件
-3. \`git status\` 看看改了什么
-4. \`git add <文件>\` 暂存
-5. \`git commit -m "说明"\` 提交
-6. \`git push\` 推送
+3. \`git add <文件>\`
+4. \`git commit -m "说明"\`
+5. \`git push\`
 
-## 撤销操作
-
-~~~bash
-git restore <文件>          # 丢弃工作区修改
-git restore --staged <文件> # 取消暂存
-git commit --amend          # 修改最近一次提交
-~~~
-
-> 已经 push 过的提交不要随便 \`--amend\`，除非你确定只有自己在这个分支上。
-
-## 小技巧
-
-- \`git log --oneline --graph --all\` 看分支图
-- \`git stash\` 临时保存手头改动
-- \`.gitignore\` 里写上 \`node_modules/\`、\`dist/\``
-    }
+> 已 push 的提交不要随便 \`--amend\`。` }
   ]
 };
 
 /* ============================================================
-   2. 配置管理（只存 token 等连接信息，不存笔记）
+   2. 配置
    ============================================================ */
 const CFG_KEY = 'my-notes-gh-config';
+const PREF_KEY = 'my-notes-prefs';
 
 function loadConfig() {
   try {
@@ -451,14 +432,13 @@ function loadConfig() {
   } catch (e) {}
   return null;
 }
+function saveConfig(c) { try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch(e){} }
+function clearConfig() { try { localStorage.removeItem(CFG_KEY); } catch(e){} }
 
-function saveConfig(c) {
-  try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {}
+function loadPrefs() {
+  try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch(e) { return {}; }
 }
-
-function clearConfig() {
-  try { localStorage.removeItem(CFG_KEY); } catch (e) {}
-}
+function savePrefs(p) { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch(e){} }
 
 /* ============================================================
    3. GitHub API
@@ -467,33 +447,26 @@ function b64encode(str) {
   const bytes = new TextEncoder().encode(str);
   let bin = '';
   const CH = 0x8000;
-  for (let i = 0; i < bytes.length; i += CH) {
-    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
-  }
+  for (let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
   return btoa(bin);
 }
-
 function b64decode(b64) {
   const bin = atob(String(b64).replace(/\s/g, ''));
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new TextDecoder().decode(bytes);
 }
-
 async function ghError(res) {
   let msg = res.status + ' ' + res.statusText;
-  try {
-    const j = await res.json();
-    if (j && j.message) msg = j.message + '（' + res.status + '）';
-  } catch (e) {}
-  const err = new Error(msg);
-  err.status = res.status;
-  return err;
+  try { const j = await res.json(); if (j && j.message) msg = j.message + '（' + res.status + '）'; } catch(e){}
+  const err = new Error(msg); err.status = res.status; return err;
+}
+function contentsUrl(cfg, path) {
+  return 'https://api.github.com/repos/' + encodeURIComponent(cfg.owner) + '/' + encodeURIComponent(cfg.repo) + '/contents/' + path.split('/').map(encodeURIComponent).join('/');
 }
 
 const gh = {
   cfg: null,
-
   headers() {
     return {
       'Authorization': 'Bearer ' + this.cfg.token,
@@ -501,67 +474,56 @@ const gh = {
       'X-GitHub-Api-Version': '2022-11-28'
     };
   },
-
-  apiUrl() {
-    const c = this.cfg;
-    return 'https://api.github.com/repos/' + encodeURIComponent(c.owner) + '/' +
-           encodeURIComponent(c.repo) + '/contents/' +
-           c.path.split('/').map(encodeURIComponent).join('/');
-  },
-
-  /* 读取文件，返回 { sha, data } 或 null（文件不存在） */
   async get() {
     const c = this.cfg;
-    const url = this.apiUrl() + '?ref=' + encodeURIComponent(c.branch) + '&t=' + Date.now();
+    const url = contentsUrl(c, c.path) + '?ref=' + encodeURIComponent(c.branch) + '&t=' + Date.now();
     const res = await fetch(url, { headers: this.headers(), cache: 'no-store' });
     if (res.status === 404) return null;
     if (!res.ok) throw await ghError(res);
-
     const json = await res.json();
-
-    // 超过 1MB 时 GitHub 不返回 content，需要走 download_url
     let text;
-    if (json.content) {
-      text = b64decode(json.content);
-    } else if (json.download_url) {
+    if (json.content) text = b64decode(json.content);
+    else if (json.download_url) {
       const r = await fetch(json.download_url + '?t=' + Date.now(), { cache: 'no-store' });
       if (!r.ok) throw await ghError(r);
       text = await r.text();
-    } else {
-      throw new Error('无法读取文件内容');
-    }
-
+    } else throw new Error('无法读取文件内容');
     let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      throw new Error('data.json 格式错误，不是合法的 JSON');
-    }
+    try { data = JSON.parse(text); } catch(e) { throw new Error('data.json 格式错误'); }
     return { sha: json.sha, data: normalize(data) };
   },
-
-  /* 写入文件，返回新的 sha */
   async put(data, sha, message) {
     const c = this.cfg;
-    const body = {
-      message: message || 'update notes',
-      content: b64encode(JSON.stringify(data, null, 2)),
-      branch: c.branch
-    };
+    const body = { message: message || 'update notes', content: b64encode(JSON.stringify(data, null, 2)), branch: c.branch };
     if (sha) body.sha = sha;
-
-    const res = await fetch(this.apiUrl(), {
+    const res = await fetch(contentsUrl(c, c.path), {
       method: 'PUT',
       headers: Object.assign({ 'Content-Type': 'application/json' }, this.headers()),
       body: JSON.stringify(body)
     });
     if (!res.ok) throw await ghError(res);
-
     const json = await res.json();
     return json.content && json.content.sha ? json.content.sha : sha;
   },
-
-  /* 验证配置是否可用 */
+  /* 上传一个二进制/文本文件到指定路径，返回 raw URL */
+  async uploadFile(path, base64Content, message) {
+    const c = this.cfg;
+    // 先尝试获取现有文件 sha（防止覆盖报错）
+    let sha = null;
+    try {
+      const r = await fetch(contentsUrl(c, path) + '?ref=' + encodeURIComponent(c.branch) + '&t=' + Date.now(), { headers: this.headers(), cache: 'no-store' });
+      if (r.ok) { const j = await r.json(); sha = j.sha; }
+    } catch(e){}
+    const body = { message: message || 'upload ' + path, content: base64Content, branch: c.branch };
+    if (sha) body.sha = sha;
+    const res = await fetch(contentsUrl(c, path), {
+      method: 'PUT',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, this.headers()),
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw await ghError(res);
+    return 'https://raw.githubusercontent.com/' + c.owner + '/' + c.repo + '/' + c.branch + '/' + path;
+  },
   async verify() {
     const res = await fetch('https://api.github.com/user', { headers: this.headers() });
     if (!res.ok) throw await ghError(res);
@@ -570,39 +532,143 @@ const gh = {
 };
 
 /* ============================================================
-   4. 状态与工具
+   4. 状态
    ============================================================ */
-let data = { notebooks: [], notes: [] };
+let data = { version: 2, notebooks: [], notes: [] };
 let fileSha = null;
+const prefs = loadPrefs();
 
-const state = { q: '', tag: '', notebookId: '', activeId: null };
+const state = {
+  q: '',
+  tag: '',
+  notebookId: '',
+  activeId: null,
+  sort: prefs.sort || 'updated',
+  view: 'notes'   // 'notes' | 'trash'
+};
 
 const $ = (sel, root) => (root || document).querySelector(sel);
-
+const $$ = (sel, root) => Array.prototype.slice.call((root || document).querySelectorAll(sel));
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function uid(prefix) { return prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function today() { const d = new Date(); const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
+function nowIso() { return new Date().toISOString(); }
 
+/* 数据规范化 + 迁移 */
 function normalize(d) {
   if (!d || typeof d !== 'object') d = {};
   if (!Array.isArray(d.notebooks)) d.notebooks = [];
   if (!Array.isArray(d.notes)) d.notes = [];
+  d.notes.forEach(function (n) {
+    if (typeof n.pinned !== 'boolean') n.pinned = false;
+    if (typeof n.deleted !== 'boolean') n.deleted = false;
+    if (!n.deletedAt) n.deletedAt = null;
+    if (!n.createdAt) n.createdAt = n.date ? n.date + 'T00:00:00.000Z' : nowIso();
+    if (!n.updatedAt) n.updatedAt = n.createdAt;
+  });
+  d.version = 2;
   return d;
 }
 
-function uid(prefix) {
-  return prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+/* ============================================================
+   5. 主题
+   ============================================================ */
+const themeBtn = $('#themeBtn');
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  prefs.theme = theme; savePrefs(prefs);
+  // hljs 主题切换
+  const light = document.getElementById('hljs-light');
+  const dark = document.getElementById('hljs-dark');
+  if (light && dark) {
+    if (theme === 'dark') { light.disabled = true; dark.disabled = false; }
+    else { light.disabled = false; dark.disabled = true; }
+  }
+}
+function initTheme() {
+  let theme = prefs.theme;
+  if (!theme) theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  applyTheme(theme);
+}
+themeBtn.addEventListener('click', function () {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+/* ============================================================
+   6. 遮罩 / 状态
+   ============================================================ */
+const overlay = $('#overlay');
+const overlayBox = $('#overlayBox');
+function showLoading(text) {
+  overlayBox.innerHTML = '';
+  const sp = document.createElement('div'); sp.className = 'spinner';
+  const p = document.createElement('p'); p.textContent = text || '加载中…';
+  overlayBox.appendChild(sp); overlayBox.appendChild(p);
+  overlay.classList.add('open');
+}
+function showError(msg, retryFn, extraBtn) {
+  overlayBox.innerHTML = '';
+  const p = document.createElement('p'); p.textContent = msg;
+  overlayBox.appendChild(p);
+  const wrap = document.createElement('div');
+  if (retryFn) {
+    const b = document.createElement('button'); b.className = 'btn primary'; b.type = 'button'; b.textContent = '重试';
+    b.addEventListener('click', function () { overlay.classList.remove('open'); retryFn(); });
+    wrap.appendChild(b);
+  }
+  if (extraBtn) {
+    const b2 = document.createElement('button'); b2.className = 'btn'; b2.type = 'button'; b2.textContent = extraBtn.label;
+    b2.style.marginLeft = '8px';
+    b2.addEventListener('click', extraBtn.onClick);
+    wrap.appendChild(b2);
+  }
+  overlayBox.appendChild(wrap);
+  overlay.classList.add('open');
+}
+function hideOverlay() { overlay.classList.remove('open'); }
+
+const statusEl = $('#syncStatus');
+let statusTimer = null;
+function setStatus(kind, text) {
+  clearTimeout(statusTimer);
+  statusEl.className = 'sync-status' + (kind ? ' ' + kind : '');
+  statusEl.textContent = text || '';
+  if (kind === 'ok') statusTimer = setTimeout(function () { statusEl.className = 'sync-status'; statusEl.textContent = ''; }, 2500);
+}
+statusEl.addEventListener('click', function () {
+  if (confirm('从 GitHub 重新加载最新数据？\n\n当前未保存的改动会丢失。')) boot();
+});
+
+/* ============================================================
+   7. Markdown 与高亮
+   ============================================================ */
+function mdToHtml(md) {
+  if (window.marked && typeof window.marked.parse === 'function') {
+    try { return window.marked.parse(md); } catch(e){}
+  }
+  const pre = document.createElement('pre'); pre.textContent = md;
+  return '<p style="color:var(--muted);font-size:13px">Markdown 解析库未加载，以下为纯文本：</p>' + pre.outerHTML;
+}
+function highlightCode(root) {
+  if (!window.hljs) return;
+  $$('pre code', root).forEach(function (block) {
+    try { window.hljs.highlightElement(block); } catch(e){}
+  });
+}
+function plainContent(md) {
+  return String(md)
+    .replace(/!\[([^\]]*)\]\(data:[^)]+\)/g, '[图片$1]')
+    .replace(/data:image\/[^\s)"']+/g, '[图片]');
 }
 
-function today() {
-  const d = new Date();
-  const p = n => String(n).padStart(2, '0');
-  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
-}
-
+/* ============================================================
+   8. 高亮搜索词
+   ============================================================ */
 function highlightText(el, text, keyword) {
   el.textContent = '';
   if (!keyword) { el.textContent = text; return; }
-  const lower = text.toLowerCase();
-  const kw = keyword.toLowerCase();
+  const lower = text.toLowerCase(); const kw = keyword.toLowerCase();
   let i = 0;
   while (true) {
     const idx = lower.indexOf(kw, i);
@@ -614,7 +680,6 @@ function highlightText(el, text, keyword) {
     i = idx + kw.length;
   }
 }
-
 function makeSnippet(text, kw) {
   const idx = text.toLowerCase().indexOf(kw.toLowerCase());
   if (idx === -1) return null;
@@ -623,437 +688,285 @@ function makeSnippet(text, kw) {
   return (start > 0 ? '…' : '') + text.slice(start, end).replace(/\s+/g, ' ').trim() + (end < text.length ? '…' : '');
 }
 
-function mdToHtml(md) {
-  if (window.marked && typeof window.marked.parse === 'function') {
-    try { return window.marked.parse(md); } catch (e) {}
-  }
-  const pre = document.createElement('pre');
-  pre.textContent = md;
-  return '<p style="color:var(--muted);font-size:13px">Markdown 解析库未加载，以下为纯文本：</p>' + pre.outerHTML;
-}
-
-function plainContent(md) {
-  return String(md)
-    .replace(/!\[([^\]]*)\]\(data:[^)]+\)/g, '[图片$1]')
-    .replace(/data:image\/[^\s)"']+/g, '[图片]');
-}
-
 /* ============================================================
-   5. 遮罩 / 状态提示
-   ============================================================ */
-const overlay = $('#overlay');
-const overlayBox = $('#overlayBox');
-
-function showLoading(text) {
-  overlayBox.innerHTML = '';
-  const sp = document.createElement('div');
-  sp.className = 'spinner';
-  const p = document.createElement('p');
-  p.textContent = text || '加载中…';
-  overlayBox.appendChild(sp);
-  overlayBox.appendChild(p);
-  overlay.classList.add('open');
-}
-
-function showError(msg, retryFn, extraBtn) {
-  overlayBox.innerHTML = '';
-  const p = document.createElement('p');
-  p.textContent = msg;
-  overlayBox.appendChild(p);
-
-  const wrap = document.createElement('div');
-
-  if (retryFn) {
-    const b = document.createElement('button');
-    b.className = 'btn primary';
-    b.type = 'button';
-    b.textContent = '重试';
-    b.addEventListener('click', function () { overlay.classList.remove('open'); retryFn(); });
-    wrap.appendChild(b);
-  }
-  if (extraBtn) {
-    const b2 = document.createElement('button');
-    b2.className = 'btn';
-    b2.type = 'button';
-    b2.textContent = extraBtn.label;
-    b2.style.marginLeft = '8px';
-    b2.addEventListener('click', extraBtn.onClick);
-    wrap.appendChild(b2);
-  }
-  overlayBox.appendChild(wrap);
-  overlay.classList.add('open');
-}
-
-function hideOverlay() { overlay.classList.remove('open'); }
-
-const statusEl = $('#syncStatus');
-let statusTimer = null;
-
-function setStatus(kind, text) {
-  clearTimeout(statusTimer);
-  statusEl.className = 'sync-status' + (kind ? ' ' + kind : '');
-  statusEl.textContent = text || '';
-  if (kind === 'ok') {
-    statusTimer = setTimeout(function () {
-      statusEl.className = 'sync-status';
-      statusEl.textContent = '';
-    }, 2500);
-  }
-}
-
-/* ============================================================
-   6. 渲染
+   9. 筛选与排序
    ============================================================ */
 function getFiltered() {
   const q = state.q.trim().toLowerCase();
-  return data.notes.filter(function (n) {
+  let list;
+  if (state.view === 'trash') {
+    list = data.notes.filter(function (n) { return n.deleted; });
+    list.sort(function (a, b) { return (b.deletedAt || '').localeCompare(a.deletedAt || ''); });
+    return list;
+  }
+  list = data.notes.filter(function (n) {
+    if (n.deleted) return false;
     if (state.notebookId && n.notebookId !== state.notebookId) return false;
     if (state.tag && (n.tags || []).indexOf(state.tag) === -1) return false;
     if (!q) return true;
-
     const nb = data.notebooks.filter(function (b) { return b.id === n.notebookId; })[0];
-    const hay = [
-      n.title || '',
-      (n.tags || []).join(' '),
-      plainContent(n.content || ''),
-      nb ? nb.name : ''
-    ].join('\n').toLowerCase();
-
+    const hay = [n.title || '', (n.tags || []).join(' '), plainContent(n.content || ''), nb ? nb.name : ''].join('\n').toLowerCase();
     return hay.indexOf(q) !== -1;
   });
+  // 排序
+  const s = state.sort;
+  if (s === 'title') list.sort(function (a, b) { return (a.title || '').localeCompare(b.title || '', 'zh'); });
+  else if (s === 'created') list.sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+  else list.sort(function (a, b) { return (b.updatedAt || '').localeCompare(a.updatedAt || ''); });
+  // 置顶优先
+  const pinned = list.filter(function (n) { return n.pinned; });
+  const rest = list.filter(function (n) { return !n.pinned; });
+  return pinned.concat(rest);
 }
 
+/* ============================================================
+   10. 渲染
+   ============================================================ */
 function renderNotebooks() {
   const box = $('#notebookList');
   box.innerHTML = '';
-  box.appendChild(buildNbItem('', '全部笔记', data.notes.length, false));
-
+  if (state.view === 'trash') {
+    $('#nbHeadText').textContent = '回收站';
+    $('#addNotebook').style.display = 'none';
+    return;
+  }
+  $('#nbHeadText').textContent = '笔记本';
+  $('#addNotebook').style.display = '';
+  box.appendChild(buildNbItem('', '全部笔记', data.notes.filter(function (n) { return !n.deleted; }).length, false));
   data.notebooks.forEach(function (nb) {
-    const count = data.notes.filter(function (n) { return n.notebookId === nb.id; }).length;
+    const count = data.notes.filter(function (n) { return !n.deleted && n.notebookId === nb.id; }).length;
     box.appendChild(buildNbItem(nb.id, nb.name, count, true));
   });
 }
-
 function buildNbItem(id, name, count, renameable) {
   const el = document.createElement('div');
   el.className = 'nb-item' + (state.notebookId === id ? ' active' : '');
   el.dataset.id = id;
-
-  const icon = document.createElement('span');
-  icon.className = 'nb-icon';
-  icon.textContent = id ? '📁' : '📚';
+  const icon = document.createElement('span'); icon.className = 'nb-icon'; icon.textContent = id ? '📁' : '📚';
   el.appendChild(icon);
-
-  const nameEl = document.createElement('span');
-  nameEl.className = 'nb-name';
-  nameEl.textContent = name;
+  const nameEl = document.createElement('span'); nameEl.className = 'nb-name'; nameEl.textContent = name;
   el.appendChild(nameEl);
-
-  const countEl = document.createElement('span');
-  countEl.className = 'nb-count';
-  countEl.textContent = count;
+  const countEl = document.createElement('span'); countEl.className = 'nb-count'; countEl.textContent = count;
   el.appendChild(countEl);
-
   if (renameable) {
-    const edit = document.createElement('button');
-    edit.type = 'button';
-    edit.className = 'nb-edit';
-    edit.title = '重命名';
-    edit.textContent = '✏️';
-    edit.addEventListener('click', function (e) {
-      e.stopPropagation();
-      startRename(id);
-    });
+    const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'nb-edit'; edit.title = '重命名'; edit.textContent = '✏️';
+    edit.addEventListener('click', function (e) { e.stopPropagation(); startRename(id); });
     el.appendChild(edit);
   }
-
   el.addEventListener('click', function () {
     state.notebookId = (state.notebookId === id) ? '' : id;
     refresh();
   });
-
   return el;
 }
-
 function startRename(nbId) {
   const el = document.querySelector('.nb-item[data-id="' + nbId + '"]');
   if (!el) return;
   const nameEl = el.querySelector('.nb-name');
   if (!nameEl) return;
-
   const input = document.createElement('input');
-  input.className = 'nb-rename';
-  input.value = nameEl.textContent;
-  nameEl.replaceWith(input);
-  input.focus();
-  input.select();
-
+  input.className = 'nb-rename'; input.value = nameEl.textContent;
+  nameEl.replaceWith(input); input.focus(); input.select();
   let done = false;
   function finish(ok) {
-    if (done) return;
-    done = true;
+    if (done) return; done = true;
     if (ok) {
       const v = input.value.trim();
       if (v) {
         const nb = data.notebooks.filter(function (b) { return b.id === nbId; })[0];
-        if (nb && nb.name !== v) {
-          nb.name = v;
-          scheduleSave('rename notebook: ' + v);
-        }
+        if (nb && nb.name !== v) { nb.name = v; scheduleSave('rename notebook: ' + v); }
       }
     }
     renderNotebooks();
   }
-
   input.addEventListener('blur', function () { finish(true); });
   input.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); finish(true); }
     else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
   });
 }
-
 function renderTags() {
-  const bar = $('#tagbar');
-  bar.innerHTML = '';
-
-  const pool = data.notes.filter(function (n) {
-    return !state.notebookId || n.notebookId === state.notebookId;
-  });
-
+  const bar = $('#tagbar'); bar.innerHTML = '';
+  if (state.view === 'trash') { bar.innerHTML = '<span style="font-size:12px;color:var(--muted);padding:0 4px 8px">回收站中的笔记不参与标签筛选</span>'; return; }
+  const pool = data.notes.filter(function (n) { return !n.deleted && (!state.notebookId || n.notebookId === state.notebookId); });
   const all = [];
-  pool.forEach(function (n) {
-    (n.tags || []).forEach(function (t) {
-      if (all.indexOf(t) === -1) all.push(t);
-    });
-  });
+  pool.forEach(function (n) { (n.tags || []).forEach(function (t) { if (all.indexOf(t) === -1) all.push(t); }); });
   all.sort(function (a, b) { return a.localeCompare(b, 'zh'); });
-
-  const items = [{ label: '全部', value: '' }].concat(
-    all.map(function (t) { return { label: t, value: t }; })
-  );
-
+  const items = [{ label: '全部', value: '' }].concat(all.map(function (t) { return { label: t, value: t }; }));
   items.forEach(function (it) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'chip' + (state.tag === it.value ? ' active' : '');
     btn.textContent = it.label;
-    btn.addEventListener('click', function () {
-      state.tag = (state.tag === it.value) ? '' : it.value;
-      refresh();
-    });
+    btn.addEventListener('click', function () { state.tag = (state.tag === it.value) ? '' : it.value; refresh(); });
     bar.appendChild(btn);
   });
 }
-
 function renderList(items) {
-  const list = $('#list');
-  list.innerHTML = '';
-
+  const list = $('#list'); list.innerHTML = '';
+  const isTrash = state.view === 'trash';
   if (!items.length) {
-    const d = document.createElement('div');
-    d.className = 'empty';
-    d.textContent = data.notes.length ? '没有匹配的笔记' : '还没有笔记，点「新建」开始';
+    const d = document.createElement('div'); d.className = 'empty';
+    if (isTrash) d.textContent = '回收站是空的';
+    else d.textContent = data.notes.filter(function (n) { return !n.deleted; }).length ? '没有匹配的笔记' : '还没有笔记，点「新建」开始';
     list.appendChild(d);
     return;
   }
-
   const kw = state.q.trim();
-
   items.forEach(function (n) {
     const el = document.createElement('div');
-    el.className = 'item' + (n.id === state.activeId ? ' active' : '');
-
-    const title = document.createElement('div');
-    title.className = 'item-title';
-    highlightText(title, n.title || '未命名', kw);
+    el.className = 'item' + (n.id === state.activeId && !isTrash ? ' active' : '');
+    const title = document.createElement('div'); title.className = 'item-title';
+    if (n.pinned && !isTrash) {
+      const p = document.createElement('span'); p.className = 'pin'; p.textContent = '📌';
+      title.appendChild(p);
+    }
+    const tspan = document.createElement('span');
+    highlightText(tspan, n.title || '未命名', kw);
+    title.appendChild(tspan);
     el.appendChild(title);
-
-    if (kw) {
+    if (kw && !isTrash) {
       const clean = plainContent(n.content || '');
       const titleHit = (n.title || '').toLowerCase().indexOf(kw.toLowerCase()) !== -1;
       const snippet = titleHit ? null : makeSnippet(clean, kw);
       if (snippet) {
-        const s = document.createElement('div');
-        s.className = 'item-snippet';
-        highlightText(s, snippet, kw);
-        el.appendChild(s);
+        const s = document.createElement('div'); s.className = 'item-snippet';
+        highlightText(s, snippet, kw); el.appendChild(s);
       }
     }
-
-    const meta = document.createElement('div');
-    meta.className = 'item-meta';
-
+    const meta = document.createElement('div'); meta.className = 'item-meta';
     const date = document.createElement('span');
-    date.textContent = n.date || '';
+    date.textContent = isTrash ? ('删除于 ' + (n.deletedAt ? n.deletedAt.slice(0, 10) : '未知')) : (n.date || '');
     meta.appendChild(date);
-
-    const tags = document.createElement('span');
-    tags.textContent = (n.tags || []).map(function (t) { return '#' + t; }).join(' ');
-    meta.appendChild(tags);
-
+    if (!isTrash) {
+      const tags = document.createElement('span');
+      tags.textContent = (n.tags || []).map(function (t) { return '#' + t; }).join(' ');
+      meta.appendChild(tags);
+    }
     el.appendChild(meta);
-    el.addEventListener('click', function () { selectNote(n.id); });
+    if (isTrash) {
+      const acts = document.createElement('div'); acts.className = 'trash-actions';
+      const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'btn'; rb.textContent = '恢复';
+      rb.addEventListener('click', function (e) { e.stopPropagation(); restoreNote(n.id); });
+      const db = document.createElement('button'); db.type = 'button'; db.className = 'btn danger'; db.textContent = '彻底删除';
+      db.addEventListener('click', function (e) { e.stopPropagation(); purgeNote(n.id); });
+      acts.appendChild(rb); acts.appendChild(db);
+      el.appendChild(acts);
+      el.addEventListener('click', function () { selectNote(n.id); });
+    } else {
+      el.addEventListener('click', function () { selectNote(n.id); });
+    }
     list.appendChild(el);
   });
 }
-
 function renderNote() {
-  const doc = $('#doc');
-  doc.innerHTML = '';
-
+  const doc = $('#doc'); doc.innerHTML = '';
   const n = data.notes.filter(function (x) { return x.id === state.activeId; })[0];
+  const isTrash = state.view === 'trash';
 
   if (!n) {
-    const d = document.createElement('div');
-    d.className = 'empty';
-    d.textContent = data.notes.length ? '从左侧选择一篇笔记开始阅读' : '还没有笔记，点「新建」开始吧';
-    doc.appendChild(d);
-    return;
+    const d = document.createElement('div'); d.className = 'empty';
+    d.textContent = isTrash ? '从左侧选择一条回收站笔记，可恢复或彻底删除'
+      : (data.notes.filter(function (x) { return !x.deleted; }).length ? '从左侧选择一篇笔记开始阅读' : '还没有笔记，点「新建」开始吧');
+    doc.appendChild(d); return;
   }
-
-  const head = document.createElement('div');
-  head.className = 'doc-head';
-
-  const h = document.createElement('h1');
-  h.className = 'doc-title';
-  h.textContent = n.title || '未命名';
+  const head = document.createElement('div'); head.className = 'doc-head';
+  const h = document.createElement('h1'); h.className = 'doc-title';
+  if (n.pinned && !isTrash) { const p = document.createElement('span'); p.className = 'pin'; p.textContent = '📌 '; h.appendChild(p); }
+  h.appendChild(document.createTextNode(n.title || '未命名'));
   head.appendChild(h);
 
-  const meta = document.createElement('div');
-  meta.className = 'doc-meta';
-
-  const date = document.createElement('span');
-  date.textContent = '📅 ' + (n.date || '');
-  meta.appendChild(date);
-
+  const meta = document.createElement('div'); meta.className = 'doc-meta';
+  const date = document.createElement('span'); date.textContent = '📅 ' + (n.date || ''); meta.appendChild(date);
   const nb = data.notebooks.filter(function (b) { return b.id === n.notebookId; })[0];
-  if (nb) {
-    const nbSpan = document.createElement('span');
-    nbSpan.textContent = '📁 ' + nb.name;
-    meta.appendChild(nbSpan);
+  if (nb) { const s = document.createElement('span'); s.textContent = '📁 ' + nb.name; meta.appendChild(s); }
+  (n.tags || []).forEach(function (t) { const chip = document.createElement('span'); chip.className = 'chip plain'; chip.textContent = '#' + t; meta.appendChild(chip); });
+
+  const actions = document.createElement('div'); actions.className = 'doc-actions';
+  if (isTrash) {
+    const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'btn'; rb.textContent = '♻️ 恢复';
+    rb.addEventListener('click', function () { restoreNote(n.id); }); actions.appendChild(rb);
+    const db = document.createElement('button'); db.type = 'button'; db.className = 'btn danger'; db.textContent = '彻底删除';
+    db.addEventListener('click', function () { purgeNote(n.id); }); actions.appendChild(db);
+  } else {
+    const pb = document.createElement('button'); pb.type = 'button'; pb.className = 'btn';
+    pb.textContent = n.pinned ? '📌 取消置顶' : '📌 置顶';
+    pb.addEventListener('click', function () { togglePin(n.id); }); actions.appendChild(pb);
+    const eb = document.createElement('button'); eb.type = 'button'; eb.className = 'btn'; eb.textContent = '✏️ 编辑';
+    eb.addEventListener('click', function () { openEditor(n.id); }); actions.appendChild(eb);
+    const nb2 = document.createElement('button'); nb2.type = 'button'; nb2.className = 'btn primary'; nb2.textContent = '＋ 新建';
+    nb2.addEventListener('click', function () { openEditor(null); }); actions.appendChild(nb2);
   }
+  meta.appendChild(actions); head.appendChild(meta); doc.appendChild(head);
 
-  (n.tags || []).forEach(function (t) {
-    const chip = document.createElement('span');
-    chip.className = 'chip plain';
-    chip.textContent = '#' + t;
-    meta.appendChild(chip);
-  });
-
-  const actions = document.createElement('div');
-  actions.className = 'doc-actions';
-
-  const editBtn = document.createElement('button');
-  editBtn.type = 'button';
-  editBtn.className = 'btn';
-  editBtn.textContent = '✏️ 编辑';
-  editBtn.addEventListener('click', function () { openEditor(n.id); });
-  actions.appendChild(editBtn);
-
-  const newBtn = document.createElement('button');
-  newBtn.type = 'button';
-  newBtn.className = 'btn primary';
-  newBtn.textContent = '＋ 新建';
-  newBtn.addEventListener('click', function () { openEditor(null); });
-  actions.appendChild(newBtn);
-
-  meta.appendChild(actions);
-  head.appendChild(meta);
-  doc.appendChild(head);
-
-  const body = document.createElement('div');
-  body.className = 'md';
+  const body = document.createElement('div'); body.className = 'md';
   body.innerHTML = mdToHtml(n.content || '');
-
   const first = body.firstElementChild;
   if (first && first.tagName === 'H1') first.remove();
-
+  highlightCode(body);
   doc.appendChild(body);
+
   $('#article').scrollTop = 0;
+  updateToTopBtn();
 }
 
 function refresh() {
   const items = getFiltered();
-
-  if (items.length) {
+  if (state.view === 'notes' && items.length) {
     const stillVisible = items.some(function (n) { return n.id === state.activeId; });
-    if (!stillVisible) {
-      state.activeId = items[0].id;
-      syncHash(state.activeId);
+    if (!stillVisible) { state.activeId = items[0].id; syncHash(state.activeId); }
+  } else if (state.view === 'trash') {
+    if (state.activeId && !items.some(function (n) { return n.id === state.activeId; })) {
+      state.activeId = items[0] ? items[0].id : null;
     }
-  } else {
-    state.activeId = null;
-  }
+  } else state.activeId = null;
 
   renderNotebooks();
   renderTags();
   renderList(items);
   renderNote();
 }
-
-function selectNote(id) {
-  state.activeId = id;
-  syncHash(id);
-  refresh();
-}
-
+function selectNote(id) { state.activeId = id; syncHash(id); refresh(); }
 function syncHash(id) {
   try {
     if (id) history.replaceState(null, '', '#' + encodeURIComponent(id));
     else history.replaceState(null, '', location.pathname + location.search);
-  } catch (e) {}
+  } catch(e){}
 }
 
 /* ============================================================
-   7. 同步到 GitHub
+   11. 同步保存
    ============================================================ */
-let saveTimer = null;
-let saving = false;
-let pendingSave = false;
-let lastMessage = 'update notes';
-
+let saveTimer = null, saving = false, pendingSave = false, lastMessage = 'update notes';
 function scheduleSave(message) {
   if (message) lastMessage = message;
   clearTimeout(saveTimer);
   setStatus('saving', '⟳ 待保存…');
   saveTimer = setTimeout(doSave, 1200);
 }
-
 async function doSave() {
+  saveTimer = null;
   if (saving) { pendingSave = true; return; }
   saving = true;
   setStatus('saving', '⟳ 保存中…');
-
   try {
     fileSha = await gh.put(data, fileSha, lastMessage);
     setStatus('ok', '✓ 已同步');
   } catch (e) {
     console.error(e);
-
-    if (e.status === 401) {
-      setStatus('error', '⚠ Token 无效');
-      alert('Token 无效或已过期，请重新配置。');
-      openSetup(true);
-    } else if (e.status === 409 || e.status === 422) {
+    if (e.status === 401) { setStatus('error', '⚠ Token 无效'); alert('Token 无效或已过期，请重新配置。'); openSetup(true); }
+    else if (e.status === 409 || e.status === 422) {
       setStatus('error', '⚠ 冲突');
-      if (confirm('云端数据已被其他设备修改，你的改动与它冲突。\n\n点「确定」→ 重新从云端加载（本次未保存的改动会丢失）\n点「取消」→ 保留当前内容，稍后再试')) {
-        boot();
-      }
-    } else {
-      setStatus('error', '⚠ 保存失败，点击重试');
-      alert('保存失败：' + e.message);
-    }
+      if (confirm('云端数据已被其他设备修改，你的改动与它冲突。\n\n点「确定」→ 重新从云端加载（本次未保存的改动会丢失）\n点「取消」→ 保留当前内容，稍后再试')) boot();
+    } else { setStatus('error', '⚠ 保存失败，点击重试'); alert('保存失败：' + e.message); }
   } finally {
     saving = false;
-    if (pendingSave) {
-      pendingSave = false;
-      scheduleSave();
-    }
+    if (pendingSave) { pendingSave = false; scheduleSave(); }
   }
 }
 
 /* ============================================================
-   8. 编辑器
+   12. 编辑器
    ============================================================ */
 const modal = $('#editorModal');
 const edTitle = $('#editorTitleInput');
@@ -1061,19 +974,16 @@ const edNotebook = $('#editorNotebook');
 const edTags = $('#editorTags');
 const edContent = $('#editorContent');
 const edDelete = $('#editorDelete');
+const uploadHint = $('#uploadHint');
 let editingId = null;
 
 function openEditor(id) {
   editingId = id;
-
   edNotebook.innerHTML = '';
   data.notebooks.forEach(function (nb) {
-    const opt = document.createElement('option');
-    opt.value = nb.id;
-    opt.textContent = nb.name;
+    const opt = document.createElement('option'); opt.value = nb.id; opt.textContent = nb.name;
     edNotebook.appendChild(opt);
   });
-
   if (id) {
     const n = data.notes.filter(function (x) { return x.id === id; })[0];
     if (!n) return;
@@ -1091,109 +1001,219 @@ function openEditor(id) {
     edContent.value = '';
     edDelete.style.display = 'none';
   }
-
+  uploadHint.textContent = '';
   modal.classList.add('open');
   setTimeout(function () { edTitle.focus(); }, 30);
 }
-
-function closeEditor() {
-  modal.classList.remove('open');
-  editingId = null;
-}
-
+function closeEditor() { modal.classList.remove('open'); editingId = null; }
 function saveEditor() {
   const title = edTitle.value.trim() || '未命名笔记';
   const tags = edTags.value.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean);
   const content = edContent.value;
   const notebookId = edNotebook.value || (data.notebooks[0] ? data.notebooks[0].id : '');
-
   if (editingId) {
     const n = data.notes.filter(function (x) { return x.id === editingId; })[0];
     if (n) {
-      n.title = title;
-      n.tags = tags;
-      n.content = content;
-      n.notebookId = notebookId;
+      n.title = title; n.tags = tags; n.content = content; n.notebookId = notebookId;
+      n.updatedAt = nowIso();
     }
     scheduleSave('edit: ' + title);
   } else {
     const n = {
-      id: uid('n'),
-      notebookId: notebookId,
-      title: title,
-      tags: tags,
-      date: today(),
-      content: content
+      id: uid('n'), notebookId: notebookId, title: title, tags: tags,
+      date: today(), content: content,
+      createdAt: nowIso(), updatedAt: nowIso(),
+      pinned: false, deleted: false, deletedAt: null
     };
-    data.notes.unshift(n);
-    state.activeId = n.id;
+    data.notes.unshift(n); state.activeId = n.id;
     scheduleSave('add: ' + title);
   }
-
-  closeEditor();
-  syncHash(state.activeId);
-  refresh();
+  closeEditor(); syncHash(state.activeId); refresh();
 }
-
 function deleteNote() {
   if (!editingId) return;
-  if (!confirm('确定删除这篇笔记？此操作不可撤销。')) return;
+  if (!confirm('把这篇笔记移到回收站？\n\n可随时在回收站恢复。')) return;
   const n = data.notes.filter(function (x) { return x.id === editingId; })[0];
-  data.notes = data.notes.filter(function (x) { return x.id !== editingId; });
-  scheduleSave('delete: ' + (n ? n.title : ''));
+  if (n) { n.deleted = true; n.deletedAt = nowIso(); n.updatedAt = nowIso(); }
+  scheduleSave('trash: ' + (n ? n.title : ''));
   closeEditor();
   state.activeId = null;
   refresh();
 }
-
-/* 图片 */
-function insertAtCursor(ta, text) {
-  const s = ta.selectionStart, e = ta.selectionEnd;
-  const before = ta.value.slice(0, s);
-  const after = ta.value.slice(e);
-  ta.value = before + text + after;
-  ta.selectionStart = ta.selectionEnd = s + text.length;
-  ta.focus();
+function restoreNote(id) {
+  const n = data.notes.filter(function (x) { return x.id === id; })[0];
+  if (!n) return;
+  n.deleted = false; n.deletedAt = null; n.updatedAt = nowIso();
+  scheduleSave('restore: ' + n.title);
+  if (state.view === 'trash') state.activeId = null;
+  refresh();
 }
-
-function handleImageFile(file) {
-  if (!file || file.type.indexOf('image/') !== 0) return;
-  if (file.size > 800 * 1024) {
-    alert('图片超过 800KB。\n\n图片会以 base64 形式写进 data.json，文件太大会导致同步失败。\n建议先压缩，或改用外链：![](https://图片地址)');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = function () {
-    const name = (file.name || 'image').replace(/\.[^.]+$/, '');
-    insertAtCursor(edContent, '\n![' + name + '](' + reader.result + ')\n');
-  };
-  reader.readAsDataURL(file);
+function purgeNote(id) {
+  const n = data.notes.filter(function (x) { return x.id === id; })[0];
+  if (!n) return;
+  if (!confirm('彻底删除「' + (n.title || '未命名') + '」？此操作不可恢复。')) return;
+  data.notes = data.notes.filter(function (x) { return x.id !== id; });
+  scheduleSave('purge: ' + n.title);
+  if (state.activeId === id) state.activeId = null;
+  refresh();
+}
+function togglePin(id) {
+  const n = data.notes.filter(function (x) { return x.id === id; })[0];
+  if (!n) return;
+  n.pinned = !n.pinned; n.updatedAt = nowIso();
+  scheduleSave(n.pinned ? 'pin: ' + n.title : 'unpin: ' + n.title);
+  refresh();
 }
 
 /* ============================================================
-   9. 配置弹窗
+   13. 编辑器工具栏
+   ============================================================ */
+function surroundSelection(ta, before, after) {
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const selected = ta.value.slice(start, end);
+  const text = before + selected + after;
+  ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+  if (selected) { ta.selectionStart = start + before.length; ta.selectionEnd = start + before.length + selected.length; }
+  else { ta.selectionStart = ta.selectionEnd = start + before.length; }
+  ta.focus();
+}
+function prefixLines(ta, prefix, numbered) {
+  const value = ta.value;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  let lineStart = value.lastIndexOf('\n', start - 1) + 1;
+  let lineEnd = value.indexOf('\n', end);
+  if (lineEnd === -1) lineEnd = value.length;
+  const lines = value.slice(lineStart, lineEnd).split('\n');
+  const newLines = lines.map(function (l, i) { return (numbered ? (i + 1) + '. ' : prefix) + l; }).join('\n');
+  ta.value = value.slice(0, lineStart) + newLines + value.slice(lineEnd);
+  ta.selectionStart = lineStart;
+  ta.selectionEnd = lineStart + newLines.length;
+  ta.focus();
+}
+function insertBlock(ta, text) {
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const before = ta.value.slice(0, start);
+  const after = ta.value.slice(end);
+  const needNlBefore = before && !before.endsWith('\n') ? '\n' : '';
+  const needNlAfter = after && !after.startsWith('\n') ? '\n' : '';
+  const block = needNlBefore + text + needNlAfter;
+  ta.value = before + block + after;
+  ta.selectionStart = ta.selectionEnd = start + block.length;
+  ta.focus();
+}
+const tbCommands = {
+  bold: function (ta) { surroundSelection(ta, '**', '**'); },
+  italic: function (ta) { surroundSelection(ta, '*', '*'); },
+  strike: function (ta) { surroundSelection(ta, '~~', '~~'); },
+  inlineCode: function (ta) { surroundSelection(ta, '`', '`'); },
+  h1: function (ta) { prefixLines(ta, '# '); },
+  h2: function (ta) { prefixLines(ta, '## '); },
+  h3: function (ta) { prefixLines(ta, '### '); },
+  ul: function (ta) { prefixLines(ta, '- '); },
+  ol: function (ta) { prefixLines(ta, '', true); },
+  quote: function (ta) { prefixLines(ta, '> '); },
+  codeblock: function (ta) {
+    const fence = '```';
+    const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+    if (sel) surroundSelection(ta, fence + '\n', '\n' + fence);
+    else insertBlock(ta, fence + '\n\n' + fence);
+  },
+  link: function (ta) {
+    const url = prompt('链接地址：', 'https://');
+    if (!url) return;
+    const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd) || '链接文字';
+    surroundSelection(ta, '[', '](' + url + ')');
+    // 处理：选中文本被 [sel](url) 包围后，光标位置可能需要微调，但基本 OK
+  },
+  table: function (ta) {
+    insertBlock(ta, '| 列 1 | 列 2 |\n| --- | --- |\n| 内容 | 内容 |\n');
+  }
+};
+$('#editorToolbar').addEventListener('click', function (e) {
+  const btn = e.target.closest('.tb-btn');
+  if (!btn) return;
+  const cmd = btn.dataset.cmd;
+  if (tbCommands[cmd]) tbCommands[cmd](edContent);
+});
+
+/* 编辑器快捷键 */
+edContent.addEventListener('keydown', function (e) {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === 'b') { e.preventDefault(); tbCommands.bold(edContent); return; }
+  if (mod && e.key.toLowerCase() === 'i') { e.preventDefault(); tbCommands.italic(edContent); return; }
+  if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); tbCommands.link(edContent); return; }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = edContent.selectionStart, end = edContent.selectionEnd;
+    edContent.value = edContent.value.slice(0, start) + '  ' + edContent.value.slice(end);
+    edContent.selectionStart = edContent.selectionEnd = start + 2;
+  }
+});
+
+/* ============================================================
+   14. 图片上传到仓库
+   ============================================================ */
+function fileToDataUrl(file) {
+  return new Promise(function (resolve, reject) {
+    const r = new FileReader();
+    r.onload = function () { resolve(r.result); };
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+function genImageName(file) {
+  let ext = 'png';
+  const m = (file.name || '').match(/\.([a-z0-9]+)$/i);
+  if (m) ext = m[1].toLowerCase();
+  else if (file.type.indexOf('image/') === 0) ext = file.type.slice(6).replace('jpeg', 'jpg');
+  const ts = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 7);
+  return 'img-' + ts + '-' + rand + '.' + ext;
+}
+async function uploadImageFile(file) {
+  if (!file || file.type.indexOf('image/') !== 0) return;
+  if (file.size > 8 * 1024 * 1024) {
+    alert('图片超过 8MB，请压缩后再上传。');
+    return;
+  }
+  uploadHint.textContent = '上传中…';
+  try {
+    const dataUrl = await fileToDataUrl(file);
+    const base64 = dataUrl.split(',')[1];
+    const name = genImageName(file);
+    const path = 'images/' + name;
+    const url = await gh.uploadFile(path, base64, 'upload image ' + name);
+    // raw 有 CDN 缓存，加上版本参数避免立刻 404
+    const urlWithV = url + '?v=' + Date.now();
+    const md = '\n![' + name.replace(/\.[^.]+$/, '') + '](' + urlWithV + ')\n';
+    insertBlock(edContent, md);
+    uploadHint.textContent = '✓ 已上传';
+    setTimeout(function () { uploadHint.textContent = ''; }, 2500);
+  } catch (e) {
+    console.error(e);
+    uploadHint.textContent = '';
+    alert('图片上传失败：' + e.message);
+  }
+}
+
+/* ============================================================
+   15. 设置 / 导入导出
    ============================================================ */
 const setupModal = $('#setupModal');
-
 function openSetup(canClose) {
   const cfg = loadConfig();
   if (cfg) {
-    $('#cfgOwner').value = cfg.owner;
-    $('#cfgRepo').value = cfg.repo;
-    $('#cfgBranch').value = cfg.branch;
-    $('#cfgPath').value = cfg.path;
+    $('#cfgOwner').value = cfg.owner; $('#cfgRepo').value = cfg.repo;
+    $('#cfgBranch').value = cfg.branch; $('#cfgPath').value = cfg.path;
     $('#cfgToken').value = cfg.token;
   } else {
-    $('#cfgBranch').value = 'main';
-    $('#cfgPath').value = 'data.json';
+    $('#cfgBranch').value = 'main'; $('#cfgPath').value = 'data.json';
   }
   $('#setupClose').style.display = canClose ? '' : 'none';
   $('#setupClear').style.display = cfg ? '' : 'none';
   setupModal.classList.add('open');
 }
-
 function closeSetup() { setupModal.classList.remove('open'); }
-
 async function doConnect() {
   const cfg = {
     owner: $('#cfgOwner').value.trim(),
@@ -1202,117 +1222,75 @@ async function doConnect() {
     path: $('#cfgPath').value.trim() || 'data.json',
     token: $('#cfgToken').value.trim()
   };
-
-  if (!cfg.owner || !cfg.repo || !cfg.token) {
-    alert('用户名、仓库名、Token 都是必填的');
-    return;
-  }
-
-  saveConfig(cfg);
-  gh.cfg = cfg;
-  closeSetup();
-
+  if (!cfg.owner || !cfg.repo || !cfg.token) { alert('用户名、仓库名、Token 都是必填的'); return; }
+  saveConfig(cfg); gh.cfg = cfg; closeSetup();
   showLoading('正在验证 Token…');
-  try {
-    await gh.verify();
-  } catch (e) {
+  try { await gh.verify(); } catch (e) {
     hideOverlay();
     alert('Token 验证失败：' + e.message + '\n\n请检查 Token 是否正确、是否有该仓库的 Contents 权限。');
-    openSetup(true);
-    return;
+    openSetup(true); return;
   }
-
   await boot();
 }
 
-/* ============================================================
-   10. 启动
-   ============================================================ */
-async function boot() {
-  initTheme();
-
-  const cfg = loadConfig();
-  if (!cfg) {
-    showError('还没有配置 GitHub 仓库。\n\n笔记需要存到你的 GitHub 仓库里，手机和电脑才能看到同一份内容。', null, {
-      label: '开始配置',
-      onClick: function () { hideOverlay(); openSetup(false); }
-    });
-    return;
-  }
-
-  gh.cfg = cfg;
-  showLoading('正在从 GitHub 加载笔记…');
-
-  let result;
-  try {
-    result = await gh.get();
-  } catch (e) {
-    console.error(e);
-    hideOverlay();
-
-    if (e.status === 401) {
-      showError('Token 无效或已过期（401）。', function () { openSetup(true); hideOverlay(); }, null);
-    } else if (e.status === 403) {
-      showError('没有权限访问该仓库（403）。\n\n请检查 Token 是否勾选了这个仓库、Contents 权限是否为 Read and write。',
-        function () { boot(); }, { label: '重新配置', onClick: function () { hideOverlay(); openSetup(true); } });
-    } else if (e.status === 404) {
-      showError('找不到仓库或分支（404）。\n\n请检查用户名、仓库名、分支名是否正确。',
-        function () { boot(); }, { label: '重新配置', onClick: function () { hideOverlay(); openSetup(true); } });
-    } else {
-      showError('加载失败：' + e.message, function () { boot(); }, null);
+function exportJson() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'notes-backup-' + today() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+function importJson() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = async function () {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    let text;
+    try { text = await file.text(); } catch (e) { alert('读取文件失败'); return; }
+    let imported;
+    try { imported = JSON.parse(text); } catch (e) { alert('文件不是合法的 JSON'); return; }
+    if (!imported || !Array.isArray(imported.notebooks) || !Array.isArray(imported.notes)) {
+      alert('文件结构不对，应该包含 notebooks 和 notes 两个数组');
+      return;
     }
-    return;
-  }
-
-  if (result) {
-    data = result.data;
-    fileSha = result.sha;
-  } else {
-    data = clone(DEFAULT_DATA);
-    fileSha = null;
-  }
-
-  if (!data.notebooks.length) {
-    data.notebooks.push({ id: 'nb-default', name: '默认笔记本' });
-  }
-
-  // 恢复 URL 里的笔记 id
-  let hash = '';
-  try { hash = decodeURIComponent(location.hash.slice(1)); } catch (e) { hash = ''; }
-  if (hash && data.notes.some(function (n) { return n.id === hash; })) {
-    state.activeId = hash;
-  } else {
-    state.activeId = data.notes[0] ? data.notes[0].id : null;
-  }
-
-  hideOverlay();
-  refresh();
-
-  if (!result) {
-    setStatus('saving', '⟳ 首次保存中…');
-    scheduleSave('init data.json');
-  } else {
-    setStatus('ok', '✓ 已加载');
-  }
+    if (!confirm('导入会覆盖当前全部笔记（GitHub 上的 data.json 也会被覆盖）。\n\n确定继续吗？')) return;
+    showLoading('正在导入…');
+    try {
+      const existing = await gh.get();
+      const sha = existing ? existing.sha : null;
+      data = normalize(clone(imported));
+      if (!data.notebooks.length) data.notebooks.push({ id: 'nb-default', name: '默认笔记本' });
+      fileSha = await gh.put(data, sha, 'import backup');
+      hideOverlay();
+      state.activeId = data.notes.filter(function (n) { return !n.deleted; })[0] ? data.notes.filter(function (n) { return !n.deleted; })[0].id : null;
+      refresh();
+      setStatus('ok', '✓ 导入成功');
+    } catch (e) {
+      hideOverlay();
+      alert('导入失败：' + e.message);
+    }
+  };
+  input.click();
 }
 
 /* ============================================================
-   11. 事件绑定
+   16. 事件绑定
    ============================================================ */
-// 新建笔记本
 $('#addNotebook').addEventListener('click', function () {
   const nb = { id: uid('nb'), name: '新建笔记本' };
   data.notebooks.push(nb);
   scheduleSave('add notebook');
-  renderNotebooks();
-  startRename(nb.id);
+  renderNotebooks(); startRename(nb.id);
 });
 
-// 搜索
-const searchEl = $('#search');
-const clearBtn = $('#clearSearch');
+const searchEl = $('#search'), clearBtn = $('#clearSearch');
 let searchTimer = null;
-
 searchEl.addEventListener('input', function () {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(function () {
@@ -1321,41 +1299,33 @@ searchEl.addEventListener('input', function () {
     refresh();
   }, 150);
 });
-
 clearBtn.addEventListener('click', function () {
-  searchEl.value = '';
-  state.q = '';
-  clearBtn.style.display = 'none';
-  refresh();
-  searchEl.focus();
+  searchEl.value = ''; state.q = ''; clearBtn.style.display = 'none'; refresh(); searchEl.focus();
 });
-
 searchEl.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') {
-    searchEl.value = '';
-    state.q = '';
-    clearBtn.style.display = 'none';
-    refresh();
-  }
+  if (e.key === 'Escape') { searchEl.value = ''; state.q = ''; clearBtn.style.display = 'none'; refresh(); }
 });
 
-// 主题
-const themeBtn = $('#themeBtn');
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
-  try { localStorage.setItem('notes-theme', theme); } catch (e) {}
-}
-function initTheme() {
-  let theme = null;
-  try { theme = localStorage.getItem('notes-theme'); } catch (e) {}
-  if (!theme) {
-    theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+// 排序
+const sortSel = $('#sortSel');
+sortSel.value = state.sort;
+sortSel.addEventListener('change', function () {
+  state.sort = sortSel.value;
+  prefs.sort = state.sort; savePrefs(prefs);
+  refresh();
+});
+
+// 回收站视图切换
+const trashBtn = $('#trashBtn');
+trashBtn.addEventListener('click', function () {
+  if (state.view === 'trash') {
+    state.view = 'notes'; trashBtn.classList.remove('active'); trashBtn.title = '回收站';
+    state.activeId = data.notes.filter(function (n) { return !n.deleted; })[0] ? data.notes.filter(function (n) { return !n.deleted; })[0].id : null;
+  } else {
+    state.view = 'trash'; trashBtn.classList.add('active'); trashBtn.title = '返回笔记';
+    state.activeId = data.notes.filter(function (n) { return n.deleted; })[0] ? data.notes.filter(function (n) { return n.deleted; })[0].id : null;
   }
-  applyTheme(theme);
-}
-themeBtn.addEventListener('click', function () {
-  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  refresh();
 });
 
 // 设置
@@ -1364,79 +1334,118 @@ $('#setupSave').addEventListener('click', doConnect);
 $('#setupClose').addEventListener('click', closeSetup);
 $('#setupClear').addEventListener('click', function () {
   if (!confirm('清除本机保存的仓库配置？\n\n（GitHub 上的笔记数据不会被删除）')) return;
-  clearConfig();
-  closeSetup();
-  location.reload();
+  clearConfig(); closeSetup(); location.reload();
 });
 setupModal.addEventListener('click', function (e) {
   if (e.target === setupModal && $('#setupClose').style.display !== 'none') closeSetup();
 });
-
-// 点击同步状态 = 手动重新加载
-statusEl.addEventListener('click', function () {
-  if (confirm('从 GitHub 重新加载最新数据？\n\n当前未保存的改动会丢失。')) boot();
-});
+$('#exportBtn').addEventListener('click', exportJson);
+$('#importBtn').addEventListener('click', importJson);
 
 // 编辑器事件
 $('#editorClose').addEventListener('click', closeEditor);
 $('#editorCancel').addEventListener('click', closeEditor);
 $('#editorSave').addEventListener('click', saveEditor);
 edDelete.addEventListener('click', deleteNote);
-
-modal.addEventListener('click', function (e) {
-  if (e.target === modal) closeEditor();
-});
-
+modal.addEventListener('click', function (e) { if (e.target === modal) closeEditor(); });
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && modal.classList.contains('open')) closeEditor();
   if ((e.ctrlKey || e.metaKey) && e.key === 's' && modal.classList.contains('open')) {
-    e.preventDefault();
-    saveEditor();
+    e.preventDefault(); saveEditor();
   }
 });
 
-// 图片
+// 图片选择 / 粘贴 / 拖入
 $('#editorImageBtn').addEventListener('click', function () { $('#editorFileInput').click(); });
 $('#editorFileInput').addEventListener('change', function (e) {
   const f = e.target.files && e.target.files[0];
-  if (f) handleImageFile(f);
+  if (f) uploadImageFile(f);
   e.target.value = '';
 });
-
 edContent.addEventListener('paste', function (e) {
   const items = e.clipboardData && e.clipboardData.items;
   if (!items) return;
   for (let i = 0; i < items.length; i++) {
     if (items[i].type.indexOf('image/') === 0) {
       e.preventDefault();
-      handleImageFile(items[i].getAsFile());
+      uploadImageFile(items[i].getAsFile());
       return;
     }
   }
 });
-
 edContent.addEventListener('dragover', function (e) { e.preventDefault(); });
 edContent.addEventListener('drop', function (e) {
   const files = e.dataTransfer && e.dataTransfer.files;
   if (files && files.length && files[0].type.indexOf('image/') === 0) {
     e.preventDefault();
-    handleImageFile(files[0]);
+    uploadImageFile(files[0]);
   }
 });
 
-// 离开页面前提醒未保存
+// 回到顶部按钮
+const toTop = $('#toTop');
+function updateToTopBtn() {
+  toTop.style.display = $('#article').scrollTop > 300 ? 'flex' : 'none';
+}
+$('#article').addEventListener('scroll', updateToTopBtn);
+toTop.addEventListener('click', function () { $('#article').scrollTo({ top: 0, behavior: 'smooth' }); });
+
+// 离开页面前提醒
 window.addEventListener('beforeunload', function (e) {
-  if (saving || saveTimer) {
-    e.preventDefault();
-    e.returnValue = '';
-  }
+  if (saving || saveTimer) { e.preventDefault(); e.returnValue = ''; }
 });
 
-/* 启动 */
-(function () {
-  if (window.marked && window.marked.setOptions) {
-    window.marked.setOptions({ gfm: true, breaks: false });
+/* ============================================================
+   17. 启动
+   ============================================================ */
+async function boot() {
+  initTheme();
+  const cfg = loadConfig();
+  if (!cfg) {
+    showError('还没有配置 GitHub 仓库。\n\n笔记需要存到你的 GitHub 仓库里，手机和电脑才能看到同一份内容。', null, {
+      label: '开始配置', onClick: function () { hideOverlay(); openSetup(false); }
+    });
+    return;
   }
+  gh.cfg = cfg;
+  showLoading('正在从 GitHub 加载笔记…');
+  let result;
+  try { result = await gh.get(); } catch (e) {
+    console.error(e); hideOverlay();
+    if (e.status === 401) showError('Token 无效或已过期（401）。', function () { boot(); }, { label: '重新配置', onClick: function () { hideOverlay(); openSetup(true); } });
+    else if (e.status === 403) showError('没有权限访问该仓库（403）。\n\n请检查 Token 的 Contents 权限是否为 Read and write。', function () { boot(); }, { label: '重新配置', onClick: function () { hideOverlay(); openSetup(true); } });
+    else if (e.status === 404) showError('找不到仓库或分支（404）。\n\n请检查用户名、仓库名、分支名、data.json 路径。', function () { boot(); }, { label: '重新配置', onClick: function () { hideOverlay(); openSetup(true); } });
+    else showError('加载失败：' + e.message, function () { boot(); }, null);
+    return;
+  }
+
+  if (result) { data = result.data; fileSha = result.sha; }
+  else { data = normalize(clone(DEFAULT_DATA)); fileSha = null; }
+
+  if (!data.notebooks.length) data.notebooks.push({ id: 'nb-default', name: '默认笔记本' });
+
+  let hash = '';
+  try { hash = decodeURIComponent(location.hash.slice(1)); } catch (e) { hash = ''; }
+  const visible = data.notes.filter(function (n) { return !n.deleted; });
+  if (hash && visible.some(function (n) { return n.id === hash; })) state.activeId = hash;
+  else state.activeId = visible[0] ? visible[0].id : null;
+
+  hideOverlay();
+  refresh();
+  if (!result) { setStatus('saving', '⟳ 首次保存中…'); scheduleSave('init data.json'); }
+  else setStatus('ok', '✓ 已加载');
+}
+
+(function () {
+  if (window.marked && window.marked.setOptions) window.marked.setOptions({ gfm: true, breaks: false });
+
+  // 注册 Service Worker（PWA）
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function (e) { console.warn('SW 注册失败', e); });
+    });
+  }
+
   boot();
 })();
 </script>
